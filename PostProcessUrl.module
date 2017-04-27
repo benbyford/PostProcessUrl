@@ -1,0 +1,83 @@
+<?php
+/**
+ * PostProcessUrl (0.0.1)
+ * PostProcessUrl hard truncates name and urls to a choosen length if exceeded where ever a page is saved.
+ *
+ * @author Ben Byford
+ * @url BenByford.com
+ *
+ * Hookable functions: ProcessUrl
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class PostProcessUrl extends WireData implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => "PostProcessUrl",
+			'version' => "0.0.1",
+			'summary' => "PostProcessUrl hard truncates name and urls to a choosen length if exceeded where ever a page is saved.",
+			'author' => "Ben Byford",
+			'href' => "",
+			'icon' => "link",
+
+			// use autoload if module is to be called each load, if it is only needed to setup something set to false
+			'autoload' => true,
+			'singular' => false,
+			'requires' => "ProcessWire>=2.5",
+		);
+	}
+
+	public function init() {
+
+		// add hook before inputfield render
+		$this->addHooKBefore("Inputfield::render", $this, "ProcessUrl");
+
+	}
+
+	/*
+	*	Process name and therefore url for saved page
+	*/
+	public function ___ProcessUrl(HookEvent $event) {
+        $field = $event->object;
+
+        if($field->name == '_pw_page_name') {
+
+			// current value
+			$name = $field->value;
+			$newName = $name;
+
+			$length = $this->default_length;
+			$changed = false;
+
+			if(strlen($name) > $length){
+				$newName = substr($name, 0, $length);
+				$changed = true;
+
+				// if page already in site then dont change
+				$pageAlreadyInSite = $this->pages->get("name=$newName");
+				if($pageAlreadyInSite->id){
+
+					$this->message("Page of that name already exists in site");
+					$changed = false;
+				}
+			}
+
+			if($changed){
+
+				// set as new name
+				$field->set('value', $newName);
+
+				// display change to user
+				$this->message("URL changed from {$name} to {$newName}.");
+			}
+		}
+    }
+}
